@@ -7,6 +7,7 @@ artist_table_drop = "DROP TABLE IF EXISTS artists;"
 time_table_drop = "DROP TABLE IF EXISTS time;"
 
 # CREATE TABLES
+# TODO: use annotations "NOT NULL" and "PRIMARY KEY"
 
 songplay_table_create = ("""CREATE TABLE IF NOT EXISTS songplays (songplay_id text,
                                                                   start_time time,
@@ -52,6 +53,7 @@ time_table_create = ("""CREATE TABLE IF NOT EXISTS time (start_time time,
 # TODO: consider enumerated data type for weekday and month
 
 # INSERT RECORDS
+# TODO: add "ON CONFLICT" CLAUSES
 
 songplay_table_insert = ("""INSERT INTO songplays (songplay_id, start_time, user_id, level, song_id, 
                                                    artist_id, session_id, location, user_agent)
