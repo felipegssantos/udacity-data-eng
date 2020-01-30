@@ -10,7 +10,7 @@ time_table_drop = "DROP TABLE IF EXISTS time;"
 # TODO: use annotations "NOT NULL" and "PRIMARY KEY"
 
 songplay_table_create = ("""CREATE TABLE IF NOT EXISTS songplays (songplay_id SERIAL PRIMARY KEY,
-                                                                  start_time time,
+                                                                  start_time timestamp,
                                                                   user_id text,
                                                                   level text,
                                                                   song_id text,
@@ -41,7 +41,7 @@ artist_table_create = ("""CREATE TABLE IF NOT EXISTS artists (artist_id text PRI
                                                               longitude numeric);
 """)
 
-time_table_create = ("""CREATE TABLE IF NOT EXISTS time (start_time time PRIMARY KEY,
+time_table_create = ("""CREATE TABLE IF NOT EXISTS time (start_time timestamp PRIMARY KEY,
                                                          hour int,
                                                          day int,
                                                          week int,
