@@ -29,11 +29,17 @@ def process_event_data(session, csv_path):
     """
     event_stream = stream_from_files(csv_path)
     for event in event_stream:
-        session.execute(insert_session_history, (event['artist'], event['song'], event['length'],
-                                                 event['sessionId'], event['itemInSession']))
-        session.execute(insert_user_history, (event['artist'], event['song'], event['firstName'], event['lastName'],
-                                              event['userId'], event['sessionId'], event['itemInSession']))
-        session.execute(insert_song_history, (event['song'], event['firstName'], event['lastName']))
+        from cassandra import InvalidRequest
+        try:
+            session.execute(insert_session_history, (event['artist'], event['song'], event['length'],
+                                                     event['sessionId'], event['itemInSession']))
+            session.execute(insert_user_history, (event['artist'], event['song'], event['firstName'], event['lastName'],
+                                                  event['userId'], event['sessionId'],
+                                                  event['itemInSession']))
+            session.execute(insert_song_history, (event['song'], event['firstName'], event['lastName']))
+        except InvalidRequest as e:
+            print(event)
+            raise e
 
 
 def stream_from_files(csv_path):
@@ -51,7 +57,25 @@ def stream_from_files(csv_path):
             csv_reader = csv.reader(csv_file)
             header = next(csv_reader)
             for line in csv_reader:
-                yield {k: v for k, v in zip(header, line)}
+                if line[0] == '':
+                    continue
+                event = {k: v for k, v in zip(header, line)}
+                event['length'] = float(event['length'])
+                event['userId'] = int(event['userId'])
+                event['itemInSession'] = int(event['itemInSession'])
+                event['sessionId'] = int(event['sessionId'])
+                yield event
+
+
+def safe_cast(x, cast_func):
+    """
+    Casts x according to cast_func unless x is None or an empty string.
+
+    :param x: a string representing an int or float
+    :param cast_func: either int() or float() function
+    :return: x as a numeric type or None
+    """
+    return cast_func(x) if x not in ['', None] else None
 
 
 if __name__ == '__main__':
