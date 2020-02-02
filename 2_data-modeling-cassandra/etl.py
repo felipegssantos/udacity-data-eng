@@ -29,17 +29,12 @@ def process_event_data(session, csv_path):
     """
     event_stream = stream_from_files(csv_path)
     for event in event_stream:
-        from cassandra import InvalidRequest
-        try:
-            session.execute(insert_session_history, (event['artist'], event['song'], event['length'],
-                                                     event['sessionId'], event['itemInSession']))
-            session.execute(insert_user_history, (event['artist'], event['song'], event['firstName'], event['lastName'],
-                                                  event['userId'], event['sessionId'],
-                                                  event['itemInSession']))
-            session.execute(insert_song_history, (event['song'], event['firstName'], event['lastName']))
-        except InvalidRequest as e:
-            print(event)
-            raise e
+        session.execute(insert_session_history, (event['artist'], event['song'], event['length'],
+                                                 event['sessionId'], event['itemInSession']))
+        session.execute(insert_user_history, (event['artist'], event['song'], event['firstName'], event['lastName'],
+                                              event['userId'], event['sessionId'], event['itemInSession']))
+        session.execute(insert_song_history, (event['song'], event['firstName'],
+                                              event['lastName'], event['userId']))
 
 
 def stream_from_files(csv_path):
