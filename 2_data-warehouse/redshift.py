@@ -45,35 +45,12 @@ def create_cluster(session: boto3.Session, config: Config, args: argparse.Namesp
     :param args: unused (exists for API compatibility only)
     :return:
     """
-    # Get iam role ARN
-    iam = session.client('iam')
-    role_arn = iam.get_role(RoleName=config.iam_role_name)['Role']['Arn']
-    # Create cluster
-    print('Creating cluster...')
-    redshift = session.client('redshift')
-    response = redshift.create_cluster(
-        # Cluster
-        ClusterType=config.cluster_type,
-        NodeType=config.node_type,
-        NumberOfNodes=config.num_nodes,
-        # Identifiers & Credentials
-        DBName=config.db_name,
-        ClusterIdentifier=config.cluster_identifier,
-        MasterUsername=config.db_user,
-        MasterUserPassword=config.db_password,
-        # Roles (for s3 access) and security group
-        IamRoles=[role_arn],
-        VpcSecurityGroupIds=[config.security_group_id]
-    )
-    # pprint(response) # TODO: write to logger at debug level
-    # Wait for cluster to be available
-    redshift.get_waiter('cluster_available').wait(ClusterIdentifier=config.cluster_identifier)
-    # Display cluster properties
-    cluster_props = redshift.describe_clusters(ClusterIdentifier=config.cluster_identifier)['Clusters'][0]
-    endpoint = cluster_props['Endpoint']['Address']
-    print(f'Cluster {config.cluster_identifier} successfully created and available.')
-    print(f'    Cluster endpoint: {endpoint}')
-    # Test TCP connection
+    role_arn = _get_iam_role_arn(config, session)
+    endpoint = _create_cluster(config, role_arn, session)
+    _test_database_tcp_connection(config, endpoint)
+
+
+def _test_database_tcp_connection(config, endpoint):
     try:
         conn = psycopg2.connect(database=config.db_name, user=config.db_user, password=config.db_password,
                                 host=endpoint, port=config.port)
@@ -83,6 +60,35 @@ def create_cluster(session: boto3.Session, config: Config, args: argparse.Namesp
     else:
         print('TCP connection to cluster successfully created.')
         conn.close()
+
+
+def _create_cluster(config, role_arn, session):
+    print('Creating cluster...')
+    redshift = session.client('redshift')
+    response = redshift.create_cluster(
+        # Cluster
+        ClusterType=config.cluster_type, NodeType=config.node_type, NumberOfNodes=config.num_nodes,
+        # Identifiers & Credentials
+        DBName=config.db_name, ClusterIdentifier=config.cluster_identifier,
+        MasterUsername=config.db_user, MasterUserPassword=config.db_password,
+        # Roles (for s3 access) and security group
+        IamRoles=[role_arn], VpcSecurityGroupIds=[config.security_group_id]
+    )
+    # pprint(response) # TODO: write to logger at debug level
+    # Wait for cluster to be available
+    redshift.get_waiter('cluster_available').wait(ClusterIdentifier=config.cluster_identifier)
+    # Display cluster properties
+    cluster_props = redshift.describe_clusters(ClusterIdentifier=config.cluster_identifier)['Clusters'][0]
+    endpoint = cluster_props['Endpoint']['Address']
+    print(f'Cluster {config.cluster_identifier} successfully created and available.')
+    print(f'    Cluster endpoint: {endpoint}')
+    return endpoint
+
+
+def _get_iam_role_arn(config, session):
+    iam = session.client('iam')
+    role_arn = iam.get_role(RoleName=config.iam_role_name)['Role']['Arn']
+    return role_arn
 
 
 def delete_cluster(session: boto3.Session, config: Config, args: argparse.Namespace) -> None:
