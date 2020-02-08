@@ -13,12 +13,12 @@ Config = namedtuple('Config', ('aws_key', 'aws_secret', 'aws_region',
                                'iam_role_name', 'security_group_id'))
 
 
-def parse_config_file(config_file) -> Config:
+def parse_config_file(config_file: str) -> Config:
     """
-    Parse configuration file.
+    Parse configuration file for creating/deleting redshift clusters.
 
     :param config_file: path to the configuration file
-    :return: Config object containing all configurations
+    :return config: Config object containing all configurations
     """
     config = configparser.ConfigParser()
     with open(config_file) as f:
@@ -40,29 +40,37 @@ def create_cluster(session: boto3.Session, config: Config, args: argparse.Namesp
     """
     Creates an AWS Redhisft cluster
 
-    :param session: redshift client
+    :param session: a boto3.Session instance
     :param config: Config instance containing cluster configuration information
     :param args: unused (exists for API compatibility only)
-    :return:
     """
-    role_arn = _get_iam_role_arn(config, session)
+    role_arn = _get_iam_role_arn(config.iam_role_name, session)
     endpoint = _create_cluster(config, role_arn, session)
     _test_database_tcp_connection(config, endpoint)
 
 
-def _test_database_tcp_connection(config, endpoint):
-    try:
-        conn = psycopg2.connect(database=config.db_name, user=config.db_user, password=config.db_password,
-                                host=endpoint, port=config.port)
-    except Exception as e:
-        print('Could not connect to cluster.')
-        print(e)
-    else:
-        print('TCP connection to cluster successfully created.')
-        conn.close()
+def _get_iam_role_arn(iam_role_name: str, session: boto3.Session) -> str:
+    """
+    Returns the IAM Role Arn of the given IAM Role Name.
+
+    :param iam_role_name: a IAM Role Name string
+    :param session: a boto3.Session instance
+    :return role_arn: the corresponding IAM Role ARN string
+    """
+    iam = session.client('iam')
+    role_arn = iam.get_role(RoleName=iam_role_name)['Role']['Arn']
+    return role_arn
 
 
-def _create_cluster(config, role_arn, session):
+def _create_cluster(config: Config, role_arn: str, session: boto3.Session) -> str:
+    """
+    Creates a redshift cluster and returns its endpoint.
+
+    :param config: a Config instnce
+    :param role_arn: a IAM Role ARN string
+    :param session: a boto3.Session instance
+    :return endpoint: the endpoint for the redshift cluster
+    """
     print('Creating cluster...')
     redshift = session.client('redshift')
     response = redshift.create_cluster(
@@ -85,13 +93,35 @@ def _create_cluster(config, role_arn, session):
     return endpoint
 
 
-def _get_iam_role_arn(config, session):
-    iam = session.client('iam')
-    role_arn = iam.get_role(RoleName=config.iam_role_name)['Role']['Arn']
-    return role_arn
+def _test_database_tcp_connection(config: Config, endpoint: str) -> None:
+    """
+    Tests that the TCP connection to a redshift cluster works properly.
+
+    :param config: a Config instance
+    :param endpoint: the endpoint to the redshift cluster
+    """
+    try:
+        conn = psycopg2.connect(database=config.db_name, user=config.db_user, password=config.db_password,
+                                host=endpoint, port=config.port)
+    except Exception as e:
+        print('Could not connect to cluster.')
+        print(e)
+    else:
+        print('TCP connection to cluster successfully created.')
+        conn.close()
 
 
 def delete_cluster(session: boto3.Session, config: Config, args: argparse.Namespace) -> None:
+    """
+    Deletes a redshift cluster.
+
+    This function tries to take args.cluster_id as the cluster identifier for deletion. If the command is run without
+    the --cluster-id option, then it deletes the cluster identified as `config.cluster_identifier`
+
+    :param session: a boto3.Session instance
+    :param config: Config instance containing cluster configuration information
+    :param args: argparse.Namespace object containing a `cluster_id` field; this parameter
+    """
     cluster_id = config.cluster_identifier if args.cluster_id is None else args.cluster_id
     print(f'Deleting cluster {cluster_id}...')
     redshift = session.client('redshift')
@@ -113,7 +143,8 @@ create_cluster_parser = redshift_action_parsers.add_parser('create', help='Creat
 create_cluster_parser.set_defaults(func=create_cluster, subparser=create_cluster_parser)
 # Add a "delete" sub-command to delete clusters
 delete_cluster_parser = redshift_action_parsers.add_parser('delete', help='Delete an AWS Redshift cluster')
-delete_cluster_parser.add_argument('--cluster-id', help='ID of an AWS Redshift cluster',
+delete_cluster_parser.add_argument('--cluster-id', help='ID of an AWS Redshift cluster (defaults to '
+                                                        'CLUSTER_IDENTIFIER field from config file',
                                    default=None, dest='cluster_id')
 delete_cluster_parser.set_defaults(func=delete_cluster, subparser=delete_cluster_parser)
 
