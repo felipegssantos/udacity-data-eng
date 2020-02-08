@@ -10,7 +10,7 @@ import psycopg2
 Config = namedtuple('Config', ('aws_key', 'aws_secret', 'aws_region',
                                'cluster_type', 'num_nodes', 'node_type',
                                'cluster_identifier', 'db_name', 'db_user', 'db_password', 'port',
-                               'iam_role_name', 'security_group'))
+                               'iam_role_name', 'security_group_id'))
 
 
 def parse_config_file(config_file) -> Config:
@@ -32,7 +32,7 @@ def parse_config_file(config_file) -> Config:
         config.get('DWH', 'CLUSTER_IDENTIFIER'), config.get('DWH', 'DB_NAME'), config.get('DWH', 'DB_USER'),
         config.get('DWH', 'DB_PASSWORD'), int(config.get('DWH', 'PORT')),
         # IAM role (for S3 access) and security group
-        config.get('DWH', 'IAM_ROLE_NAME'), config.get('DWH', 'SECURITY_GROUP')
+        config.get('DWH', 'IAM_ROLE_NAME'), config.get('DWH', 'SECURITY_GROUP_ID')
     )
 
 
@@ -63,8 +63,7 @@ def create_cluster(session: boto3.Session, config: Config, args: argparse.Namesp
         MasterUserPassword=config.db_password,
         # Roles (for s3 access) and security group
         IamRoles=[role_arn],
-        VpcSecurityGroupIds=['sg-02fec6f5813418cba']
-        # ClusterSecurityGroups=[config.security_group]
+        VpcSecurityGroupIds=[config.security_group_id]
     )
     # pprint(response) # TODO: write to logger at debug level
     # Wait for cluster to be available
@@ -74,17 +73,6 @@ def create_cluster(session: boto3.Session, config: Config, args: argparse.Namesp
     endpoint = cluster_props['Endpoint']['Address']
     print(f'Cluster {config.cluster_identifier} successfully created and available.')
     print(f'    Cluster endpoint: {endpoint}')
-    # # Create TCP connection to cluster
-    # ec2 = session.resource('ec2')
-    # vpc = ec2.Vpc(id=cluster_props['VpcId'])
-    # default_security_group = list(vpc.security_groups.all())[0]
-    # default_security_group.authorize_ingress(
-    #     GroupName=default_security_group.group_name,
-    #     CidrIp='0.0.0.0/0',
-    #     IpProtocol='TCP',
-    #     FromPort=config.port,
-    #     ToPort=config.port
-    # )
     # Test TCP connection
     try:
         conn = psycopg2.connect(database=config.db_name, user=config.db_user, password=config.db_password,
