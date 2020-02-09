@@ -6,6 +6,8 @@ from pathlib import Path
 import boto3
 import psycopg2
 
+from textcolors import colorify
+
 
 Config = namedtuple('Config', ('aws_key', 'aws_secret', 'aws_region',
                                'cluster_type', 'num_nodes', 'node_type',
@@ -84,12 +86,13 @@ def _create_cluster(config: Config, role_arn: str, session: boto3.Session) -> st
     )
     # pprint(response) # TODO: write to logger at debug level
     # Wait for cluster to be available
+    print(f'Waiting for cluster to become available...')
     redshift.get_waiter('cluster_available').wait(ClusterIdentifier=config.cluster_identifier)
     # Display cluster properties
     cluster_props = redshift.describe_clusters(ClusterIdentifier=config.cluster_identifier)['Clusters'][0]
     endpoint = cluster_props['Endpoint']['Address']
-    print(f'Cluster {config.cluster_identifier} successfully created and available.')
-    print(f'    Cluster endpoint: {endpoint}')
+    print(f'Cluster {colorify(config.cluster_identifier, "bold", "okgreen")} successfully created and available.')
+    print(f'    Cluster endpoint: {colorify(endpoint, "bold", "okblue", "underline")}')
     return endpoint
 
 
@@ -104,10 +107,10 @@ def _test_database_tcp_connection(config: Config, endpoint: str) -> None:
         conn = psycopg2.connect(database=config.db_name, user=config.db_user, password=config.db_password,
                                 host=endpoint, port=config.port)
     except Exception as e:
-        print('Could not connect to cluster.')
+        print(colorify('Could not connect to cluster.', "fail"))
         print(e)
     else:
-        print('TCP connection to cluster successfully created.')
+        print(colorify('TCP connection working properly.', "okgreen"))
         conn.close()
 
 
@@ -123,19 +126,19 @@ def delete_cluster(session: boto3.Session, config: Config, args: argparse.Namesp
     :param args: argparse.Namespace object containing a `cluster_id` field; this parameter
     """
     cluster_id = config.cluster_identifier if args.cluster_id is None else args.cluster_id
-    print(f'Deleting cluster {cluster_id}...')
+    print(f'Deleting cluster {colorify(cluster_id, "warning")}...')
     redshift = session.client('redshift')
     response = redshift.delete_cluster(ClusterIdentifier=cluster_id,  SkipFinalClusterSnapshot=True)
     # pprint(response) # TODO: write to logger at debug level
     # Wait for cluster to be deleted
     redshift.get_waiter('cluster_deleted').wait(ClusterIdentifier=cluster_id)
-    print('Cluster successfully deleted.')
+    print(colorify('Cluster successfully deleted.', "warning"))
 
 
 parser = argparse.ArgumentParser(description='Manage AWS Redshift clusters')
 redshift_action_parsers = parser.add_subparsers(help='AWS Redshift action to be performed',
                                                 title='sub-commands')
-parser.add_argument('--config-file', help='The location of the config file',
+parser.add_argument('--config-file', help='Location of the config file',
                     default=Path(__file__, '..', 'admin.cfg').resolve().as_posix(),
                     type=str, dest='config_file')
 # Add a "create" sub-command to create clusters
@@ -144,7 +147,7 @@ create_cluster_parser.set_defaults(func=create_cluster, subparser=create_cluster
 # Add a "delete" sub-command to delete clusters
 delete_cluster_parser = redshift_action_parsers.add_parser('delete', help='Delete an AWS Redshift cluster')
 delete_cluster_parser.add_argument('--cluster-id', help='ID of an AWS Redshift cluster (defaults to '
-                                                        'CLUSTER_IDENTIFIER field from config file',
+                                                        'CLUSTER_IDENTIFIER field from config file)',
                                    default=None, dest='cluster_id')
 delete_cluster_parser.set_defaults(func=delete_cluster, subparser=delete_cluster_parser)
 
