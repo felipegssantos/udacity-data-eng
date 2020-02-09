@@ -16,66 +16,119 @@ artist_table_drop = "DROP TABLE IF EXISTS artist;"
 time_table_drop = "DROP TABLE IF EXISTS time;"
 
 # CREATE TABLES
+# TODO:
+#  1. choose wisely distribution style for each table
+#  2. change SERIAL type for corresponding redshift one
 
-staging_events_table_create = ("""CREATE TABLE IF NOT EXISTS staging_events (artist text,
-                                                                             auth text,
-                                                                             first_name text,
-                                                                             gender char(1),
-                                                                             item_in_session int,
-                                                                             last_name int,
-                                                                             length int,
-                                                                             level text,
-                                                                             location text,
-                                                                             method text,
-                                                                             page text,
-                                                                             registration numeric,
-                                                                             session_id int, 
-                                                                             song text,
-                                                                             status int,
-                                                                             ts int,
-                                                                             user_agent text,
-                                                                             user_id int);
+staging_events_table_create = ("""
+    CREATE TABLE IF NOT EXISTS staging_events (
+        artist text,
+        auth text,
+        first_name text,
+        gender char(1),
+        item_in_session int,
+        last_name text,
+        length decimal(9, 5),
+        level text,
+        location text,
+        method text,
+        page text,
+        registration decimal,
+        session_id int, 
+        song text,
+        status int,
+        ts bigint,
+        user_agent text,
+        user_id int);
 """)
 
-staging_songs_table_create = ("""CREATE TABLE IF NOT EXISTS staging_songs (num_songs int,
-                                                                           artist_id text,
-                                                                           artist_latitude numeric,
-                                                                           artist_longitude numeric,
-                                                                           artist_location text,
-                                                                           artist_name text,
-                                                                           song_id text,
-                                                                           title text,
-                                                                           duration numeric,
-                                                                           year int);
+staging_songs_table_create = ("""
+    CREATE TABLE IF NOT EXISTS staging_songs (
+        num_songs int,
+        artist_id text,
+        artist_latitude decimal,
+        artist_longitude decimal,
+        artist_location text,
+        artist_name text,
+        song_id text,
+        title text,
+        duration decimal(9, 5),
+        year int)
+    diststyle all;
 """)
 
 songplay_table_create = ("""
+    CREATE TABLE IF NOT EXISTS songplay (
+        songplay_id SERIAL PRIMARY KEY,
+        start_time timestamp,
+        user_id text not null distkey,
+        level text,
+        song_id text,
+        artist_id text,
+        session_id text not null sortkey,
+        location text,
+        user_agent text);
 """)
 
 user_table_create = ("""
+    CREATE TABLE IF NOT EXISTS customer (
+        user_id text PRIMARY KEY,
+        first_name text,
+        last_name text,
+        gender char(1),
+        level text)
+    diststyle all;
 """)
 
 song_table_create = ("""
+    CREATE TABLE IF NOT EXISTS song (
+        song_id text PRIMARY KEY,
+        title text,
+        artist_id text,
+        year int,
+        duration numeric)
+    diststyle all;
 """)
 
 artist_table_create = ("""
+    CREATE TABLE IF NOT EXISTS artist (
+        artist_id text PRIMARY KEY,
+        name text,
+        location text,
+        latitude numeric,
+        longitude numeric)
+    diststyle all;
 """)
 
 time_table_create = ("""
+    CREATE TABLE IF NOT EXISTS time (
+        start_time timestamp PRIMARY KEY,
+        hour int,
+        day int,
+        week int,
+        month int,
+        year int,
+        weekday varchar(9))
+    diststyle all;
 """)
 
 # STAGING TABLES
+# TODO:
+#  1. add conditions to copy commands
+#  2. change paths to be more restrictive and speed up testing
 
-staging_events_copy = ("""COPY staging_events
-                          FROM {}
-                          iam_role {}
-                          json {};
+staging_events_copy = ("""
+    COPY staging_events
+    FROM {}
+    iam_role {}
+    json {};
 """).format(config.get('S3', 'LOG_DATA'), config.get('IAM_ROLE', 'ARN'), config.get('S3', 'LOG_JSONPATH'))
 
-staging_songs_copy = ("""COPY staging_songs
-                         FROM {}
-                         iam_role {}
-                         json 'auto';
+staging_songs_copy = ("""
+    COPY staging_songs
+    FROM {}
+    iam_role {}
+    json 'auto';
 """).format(config.get('S3', 'SONG_DATA'), config.get('IAM_ROLE', 'ARN'))
 
 # FINAL TABLES
