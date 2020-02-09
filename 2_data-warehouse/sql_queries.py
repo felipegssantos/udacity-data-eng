@@ -7,13 +7,13 @@ config.read('dwh.cfg')
 
 # DROP TABLES
 
-staging_events_table_drop = "DROP TABLE IF EXISTS staging_events"
-staging_songs_table_drop = "DROP TABLE IF EXISTS staging_songs"
-songplay_table_drop = "DROP TABLE IF EXISTS songplay"
-user_table_drop = "DROP TABLE IF EXISTS user"
-song_table_drop = "DROP TABLE IF EXISTS song"
-artist_table_drop = "DROP TABLE IF EXISTS artist"
-time_table_drop = "DROP TABLE IF EXISTS time"
+staging_events_table_drop = "DROP TABLE IF EXISTS staging_events;"
+staging_songs_table_drop = "DROP TABLE IF EXISTS staging_songs;"
+songplay_table_drop = "DROP TABLE IF EXISTS songplay;"
+user_table_drop = "DROP TABLE IF EXISTS customer;"
+song_table_drop = "DROP TABLE IF EXISTS song;"
+artist_table_drop = "DROP TABLE IF EXISTS artist;"
+time_table_drop = "DROP TABLE IF EXISTS time;"
 
 # CREATE TABLES
 
@@ -28,25 +28,25 @@ staging_events_table_create = ("""CREATE TABLE IF NOT EXISTS staging_events (art
                                                                              location text,
                                                                              method text,
                                                                              page text,
-                                                                             registration numeric
+                                                                             registration numeric,
                                                                              session_id int, 
                                                                              song text,
                                                                              status int,
                                                                              ts int,
                                                                              user_agent text,
-                                                                             user_id int)
+                                                                             user_id int);
 """)
 
 staging_songs_table_create = ("""CREATE TABLE IF NOT EXISTS staging_songs (num_songs int,
                                                                            artist_id text,
                                                                            artist_latitude numeric,
                                                                            artist_longitude numeric,
-                                                                           artist_location text,,
+                                                                           artist_location text,
                                                                            artist_name text,
                                                                            song_id text,
                                                                            title text,
                                                                            duration numeric,
-                                                                           year int)
+                                                                           year int);
 """)
 
 songplay_table_create = ("""
@@ -68,13 +68,13 @@ time_table_create = ("""
 
 staging_events_copy = ("""COPY staging_events
                           FROM {}
-                          iam_role '{}'
-                          json '{}';
+                          iam_role {}
+                          json {};
 """).format(config.get('S3', 'LOG_DATA'), config.get('IAM_ROLE', 'ARN'), config.get('S3', 'LOG_JSONPATH'))
 
 staging_songs_copy = ("""COPY staging_songs
                          FROM {}
-                         iam_role '{}'
+                         iam_role {}
                          json 'auto';
 """).format(config.get('S3', 'SONG_DATA'), config.get('IAM_ROLE', 'ARN'))
 
