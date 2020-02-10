@@ -28,7 +28,7 @@ staging_events_table_create = ("""
         gender char(1),
         item_in_session int,
         last_name text,
-        length decimal(9, 5),
+        length decimal(10, 5),
         level text,
         location text,
         method text,
@@ -39,7 +39,8 @@ staging_events_table_create = ("""
         status int,
         ts bigint,
         user_agent text,
-        user_id int);
+        user_id int)
+    diststyle even;
 """)
 
 staging_songs_table_create = ("""
@@ -52,27 +53,29 @@ staging_songs_table_create = ("""
         artist_name text,
         song_id text,
         title text,
-        duration decimal(9, 5),
+        duration decimal(10, 5),
         year int)
     diststyle all;
 """)
 
 songplay_table_create = ("""
     CREATE TABLE IF NOT EXISTS songplay (
-        songplay_id SERIAL PRIMARY KEY,
-        start_time timestamp,
-        user_id text not null distkey,
+        songplay_id int IDENTITY(0,1) PRIMARY KEY,
+        start_time timestamp REFERENCES time,
+        user_id text DISTKEY REFERENCES customer,
         level text,
-        song_id text,
-        artist_id text,
-        session_id text not null sortkey,
+        song_id text REFERENCES song,
+        artist_id text REFERENCES artist,
+        session_id int NOT NULL,
+        item_in_session int NOT NULL, 
         location text,
-        user_agent text);
+        user_agent text,
+        SORTKEY(start_time, session_id, item_in_session);
 """)
 
 user_table_create = ("""
     CREATE TABLE IF NOT EXISTS customer (
-        user_id text PRIMARY KEY,
+        user_id int PRIMARY KEY,
         first_name text,
         last_name text,
         gender char(1),
@@ -84,9 +87,9 @@ song_table_create = ("""
     CREATE TABLE IF NOT EXISTS song (
         song_id text PRIMARY KEY,
         title text,
-        artist_id text,
+        artist_id text REFERENCES artist,
         year int,
-        duration numeric)
+        duration decimal(10, 5))
     diststyle all;
 """)
 
@@ -103,19 +106,17 @@ artist_table_create = ("""
 time_table_create = ("""
     CREATE TABLE IF NOT EXISTS time (
         start_time timestamp PRIMARY KEY,
-        hour int,
-        day int,
-        week int,
-        month int,
-        year int,
-        weekday varchar(9))
+        hour int NOT NULL,
+        day int NOT NULL,
+        week int NOT NULL,
+        month int NOT NULL,
+        year int NOT NULL,
+        weekday varchar(9) NOT NULL)
     diststyle all;
 """)
 
 # STAGING TABLES
-# TODO:
-#  1. add conditions to copy commands
-#  2. change paths to be more restrictive and speed up testing
+# TODO: change paths to be more restrictive and speed up testing
 
 staging_events_copy = ("""
     COPY staging_events
@@ -155,5 +156,5 @@ create_table_queries = [staging_events_table_create, staging_songs_table_create,
 drop_table_queries = [staging_events_table_drop, staging_songs_table_drop, songplay_table_drop, user_table_drop,
                       song_table_drop, artist_table_drop, time_table_drop]
 copy_table_queries = [staging_events_copy, staging_songs_copy]
-insert_table_queries = [songplay_table_insert, user_table_insert, song_table_insert, artist_table_insert,
-                        time_table_insert]
+insert_table_queries = [user_table_insert, artist_table_insert, song_table_insert, time_table_insert,
+                        songplay_table_insert]
