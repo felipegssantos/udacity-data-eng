@@ -16,9 +16,7 @@ artist_table_drop = "DROP TABLE IF EXISTS artist;"
 time_table_drop = "DROP TABLE IF EXISTS time;"
 
 # CREATE TABLES
-# TODO:
-#  1. choose wisely distribution style for each table
-#  2. change SERIAL type for corresponding redshift one
+# TODO: choose wisely distribution style for each table
 
 staging_events_table_create = ("""
     CREATE TABLE IF NOT EXISTS staging_events (
@@ -116,7 +114,6 @@ time_table_create = ("""
 """)
 
 # STAGING TABLES
-# TODO: change paths to be more restrictive and speed up testing
 
 staging_events_copy = ("""
     COPY staging_events
@@ -138,13 +135,29 @@ songplay_table_insert = ("""
 """)
 
 user_table_insert = ("""
+    INSERT INTO customer (user_id, first_name, last_name, gender, level)
+    SELECT user_id, first_name, last_name, gender, level
+    FROM (
+        select user_id, first_name, last_name, gender, level,
+            ROW_NUMBER() OVER (PARTITION BY user_id ORDER BY ts DESC) row_number
+        from staging_events)
+    WHERE row_number = 1
+    AND user_id IS NOT NULL;
 """)
 
 song_table_insert = ("""
 """)
 
 artist_table_insert = ("""
-""")
+    INSERT INTO artist (artist_id, name, location, latitude, longitude)
+    SELECT artist_id, artist_name, artist_location, artist_latitude, artist_longitude
+    FROM(
+        SELECT artist_id, artist_name, artist_location, artist_latitude, artist_longitude,
+            ROW_NUMBER() OVER (PARTITION BY artist_id ORDER BY LEN(artist_name), artist_location NULLS LAST, artist_latitude NULLS LAST, artist_longitude NULLS LAST) row_number
+        FROM staging_songs
+        WHERE artist_name NOT LIKE '%feat.%' or artist_name NOT LIKE '%featuring')
+    WHERE row_number = 1;
+""")  # TODO: check if I missed any artist ID due to the "NOT LIKE" rules
 
 time_table_insert = ("""
 """)
