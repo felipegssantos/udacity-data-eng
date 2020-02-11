@@ -172,6 +172,13 @@ artist_table_insert = ("""
 """)
 
 time_table_insert = ("""
+    INSERT INTO time (start_time, hour, day, week, month, year, weekday)
+    SELECT start_time, EXTRACT(hour FROM start_time) AS hour, EXTRACT(day FROM start_time) AS day,
+        EXTRACT(week FROM start_time) AS week, EXTRACT(month FROM start_time) AS month,
+        EXTRACT(year FROM start_time) AS year, TO_CHAR(start_time, 'day') AS weekday
+    FROM (
+        SELECT DISTINCT timestamp 'epoch' + ts/1000 * interval '1 second' AS start_time
+        FROM staging_events)
 """)
 
 # QUERY LISTS
