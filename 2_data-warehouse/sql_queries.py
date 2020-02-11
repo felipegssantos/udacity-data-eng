@@ -145,9 +145,21 @@ user_table_insert = ("""
     AND user_id IS NOT NULL;
 """)
 
+# Known issue: the same song_id shows up with more than one value for duration
 song_table_insert = ("""
+    INSERT INTO song (song_id, title, artist_id, year, duration)
+    SELECT song_id, title, artist_id, year, duration
+    FROM (
+        SELECT song_id, title, artist_id, year, duration,
+            ROW_NUMBER() OVER (PARTITION BY song_id) row_number
+        FROM staging_songs
+        WHERE song_id IS NOT NULL)
+    WHERE row_number = 1;
 """)
 
+# We tried to make some data wrangling:
+# 1. Sometimes an artist co-participates with (or "features") other in a song; we try to extract the main artist only
+# 2. We try to extract some location/latitude/longitude
 artist_table_insert = ("""
     INSERT INTO artist (artist_id, name, location, latitude, longitude)
     SELECT artist_id, artist_name, artist_location, artist_latitude, artist_longitude
@@ -157,7 +169,7 @@ artist_table_insert = ("""
         FROM staging_songs
         WHERE artist_name NOT LIKE '%feat.%' or artist_name NOT LIKE '%featuring')
     WHERE row_number = 1;
-""")  # TODO: check if I missed any artist ID due to the "NOT LIKE" rules
+""")
 
 time_table_insert = ("""
 """)
