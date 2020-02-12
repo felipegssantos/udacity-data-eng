@@ -35,11 +35,10 @@ staging_events_table_create = ("""
         session_id int, 
         song text,
         status int,
-        ts bigint,
+        ts bigint SORTKEY,
         user_agent text,
-        user_id int)
-    diststyle even;
-""")
+        user_id int DISTKEY);
+""")  # TODO: justify DISTKEY and SORTKEY in README.md
 
 staging_songs_table_create = ("""
     CREATE TABLE IF NOT EXISTS staging_songs (
@@ -49,12 +48,11 @@ staging_songs_table_create = ("""
         artist_longitude decimal,
         artist_location text,
         artist_name text,
-        song_id text,
+        song_id text DISTKEY,
         title text,
         duration decimal(10, 5),
-        year int)
-    diststyle all;
-""")
+        year int);
+""")  # TODO: justify DISTKEY and SORTKEY in README.md
 
 songplay_table_create = ("""
     CREATE TABLE IF NOT EXISTS songplay (
@@ -69,7 +67,7 @@ songplay_table_create = ("""
         location text,
         user_agent text)
     SORTKEY (session_id, item_in_session);
-""")
+""")  # TODO: justify DISTKEY and SORTKEY in README.md
 
 user_table_create = ("""
     CREATE TABLE IF NOT EXISTS customer (
@@ -134,7 +132,7 @@ staging_songs_copy = ("""
 songplay_table_insert = ("""
     INSERT INTO songplay (user_id, song_id, artist_id, start_time, session_id,
                           item_in_session, location, user_agent, level)
-    select
+    SELECT
         user_id,
         song_id,
         artist_id,
@@ -173,7 +171,7 @@ song_table_insert = ("""
     WHERE row_number = 1;
 """)
 
-# We tried to make some data wrangling:
+# Tried to make some data cleaning:
 # 1. Sometimes an artist co-participates with (or "features") other in a song; we try to extract the main artist only
 # 2. We try to extract some location/latitude/longitude
 artist_table_insert = ("""
@@ -181,7 +179,9 @@ artist_table_insert = ("""
     SELECT artist_id, artist_name, artist_location, artist_latitude, artist_longitude
     FROM(
         SELECT artist_id, artist_name, artist_location, artist_latitude, artist_longitude,
-            ROW_NUMBER() OVER (PARTITION BY artist_id ORDER BY LEN(artist_name), artist_location NULLS LAST, artist_latitude NULLS LAST, artist_longitude NULLS LAST) row_number
+            ROW_NUMBER() OVER (PARTITION BY artist_id ORDER BY LEN(artist_name), 
+                                   artist_location NULLS LAST, artist_latitude NULLS LAST, 
+                                   artist_longitude NULLS LAST) row_number
         FROM staging_songs
         WHERE artist_name NOT LIKE '%feat.%' or artist_name NOT LIKE '%featuring')
     WHERE row_number = 1;
