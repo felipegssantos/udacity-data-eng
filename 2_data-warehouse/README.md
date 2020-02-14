@@ -180,6 +180,8 @@ ORDER BY start_time;
 **Result**:
 ![image info](./images/query2.png)
 
+### Example 3
+
 **Question**: give me the full name (first and last) of all users who ever listened to
 the song 'All Hands Against His Own'.
 
