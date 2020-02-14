@@ -81,7 +81,7 @@ song_table_create = ("""
     CREATE TABLE IF NOT EXISTS songs (
         song_id text PRIMARY KEY,
         title text NOT NULL,
-        artist_id text REFERENCES artist,
+        artist_id text REFERENCES artists,
         year int,
         duration decimal(10, 5) NOT NULL)
     diststyle all;
