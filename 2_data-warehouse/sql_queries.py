@@ -55,42 +55,41 @@ staging_songs_table_create = ("""
 """)  # TODO: justify DISTKEY and SORTKEY in README.md
 
 songplay_table_create = ("""
-    CREATE TABLE IF NOT EXISTS songplay (
+    CREATE TABLE IF NOT EXISTS songplays (
         songplay_id int IDENTITY(0,1) PRIMARY KEY,
         start_time timestamp REFERENCES time,
-        user_id text DISTKEY REFERENCES customer,
+        user_id text DISTKEY REFERENCES users,
         level text,
-        song_id text REFERENCES song,
-        artist_id text REFERENCES artist,
+        song_id text REFERENCES songs,
+        artist_id text REFERENCES artists,
         session_id int NOT NULL,
-        item_in_session int NOT NULL, 
         location text,
         user_agent text)
     SORTKEY (session_id, item_in_session);
 """)  # TODO: justify DISTKEY and SORTKEY in README.md
 
 user_table_create = ("""
-    CREATE TABLE IF NOT EXISTS customer (
+    CREATE TABLE IF NOT EXISTS users (
         user_id int PRIMARY KEY,
         first_name text,
         last_name text,
         gender char(1),
-        level text)
+        level text NOT NULL)
     diststyle all;
 """)
 
 song_table_create = ("""
-    CREATE TABLE IF NOT EXISTS song (
+    CREATE TABLE IF NOT EXISTS songs (
         song_id text PRIMARY KEY,
-        title text,
+        title text NOT NULL,
         artist_id text REFERENCES artist,
         year int,
-        duration decimal(10, 5))
+        duration decimal(10, 5) NOT NULL)
     diststyle all;
 """)
 
 artist_table_create = ("""
-    CREATE TABLE IF NOT EXISTS artist (
+    CREATE TABLE IF NOT EXISTS artists (
         artist_id text PRIMARY KEY,
         name text,
         location text,
@@ -130,15 +129,14 @@ staging_songs_copy = ("""
 # FINAL TABLES
 
 songplay_table_insert = ("""
-    INSERT INTO songplay (user_id, song_id, artist_id, start_time, session_id,
-                          item_in_session, location, user_agent, level)
+    INSERT INTO songplays (user_id, song_id, artist_id, start_time, session_id,
+                           item_in_session, location, user_agent, level)
     SELECT
         user_id,
         song_id,
         artist_id,
         timestamp 'epoch' + ts/1000 * interval '1 second' AS start_time,
         session_id,
-        item_in_session,
         location,
         user_agent,
         level
@@ -149,7 +147,7 @@ songplay_table_insert = ("""
 """)
 
 user_table_insert = ("""
-    INSERT INTO customer (user_id, first_name, last_name, gender, level)
+    INSERT INTO users (user_id, first_name, last_name, gender, level)
     SELECT user_id, first_name, last_name, gender, level
     FROM (
         select user_id, first_name, last_name, gender, level,
@@ -161,7 +159,7 @@ user_table_insert = ("""
 
 # Known issue: the same song_id shows up with more than one value for duration
 song_table_insert = ("""
-    INSERT INTO song (song_id, title, artist_id, year, duration)
+    INSERT INTO songs (song_id, title, artist_id, year, duration)
     SELECT song_id, title, artist_id, year, duration
     FROM (
         SELECT song_id, title, artist_id, year, duration,
@@ -175,7 +173,7 @@ song_table_insert = ("""
 # 1. Sometimes an artist co-participates with (or "features") other in a song; we try to extract the main artist only
 # 2. We try to extract some location/latitude/longitude
 artist_table_insert = ("""
-    INSERT INTO artist (artist_id, name, location, latitude, longitude)
+    INSERT INTO artists (artist_id, name, location, latitude, longitude)
     SELECT artist_id, artist_name, artist_location, artist_latitude, artist_longitude
     FROM(
         SELECT artist_id, artist_name, artist_location, artist_latitude, artist_longitude,
