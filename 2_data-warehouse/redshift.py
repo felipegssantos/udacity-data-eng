@@ -84,7 +84,6 @@ def _create_cluster(config: Config, role_arn: str, session: boto3.Session) -> st
         # Roles (for s3 access) and security group
         IamRoles=[role_arn], VpcSecurityGroupIds=[config.security_group_id]
     )
-    # pprint(response) # TODO: write to logger at debug level
     # Wait for cluster to be available
     print(f'Waiting for cluster to become available...')
     redshift.get_waiter('cluster_available').wait(ClusterIdentifier=config.cluster_identifier)
@@ -129,7 +128,6 @@ def delete_cluster(session: boto3.Session, config: Config, args: argparse.Namesp
     print(f'Deleting cluster {colorify(cluster_id, "warning")}...')
     redshift = session.client('redshift')
     response = redshift.delete_cluster(ClusterIdentifier=cluster_id,  SkipFinalClusterSnapshot=True)
-    # pprint(response) # TODO: write to logger at debug level
     # Wait for cluster to be deleted
     redshift.get_waiter('cluster_deleted').wait(ClusterIdentifier=cluster_id)
     print(colorify('Cluster successfully deleted.', "warning"))

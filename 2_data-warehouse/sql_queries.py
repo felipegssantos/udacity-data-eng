@@ -37,7 +37,7 @@ staging_events_table_create = ("""
         ts bigint SORTKEY,
         user_agent text,
         user_id int);
-""")  # TODO: justify DISTKEY and SORTKEY in README.md
+""")
 
 staging_songs_table_create = ("""
     CREATE TABLE IF NOT EXISTS staging_songs (
@@ -51,7 +51,7 @@ staging_songs_table_create = ("""
         title text,
         duration decimal(10, 5),
         year int);
-""")  # TODO: justify DISTKEY and SORTKEY in README.md
+""")
 
 songplay_table_create = ("""
     CREATE TABLE IF NOT EXISTS songplays (
@@ -65,7 +65,7 @@ songplay_table_create = ("""
         location text,
         user_agent text)
     SORTKEY (start_time);
-""")  # TODO: justify DISTKEY and SORTKEY in README.md
+""")
 
 user_table_create = ("""
     CREATE TABLE IF NOT EXISTS users (
@@ -153,7 +153,7 @@ user_table_insert = ("""
         from staging_events)
     WHERE row_number = 1
     AND user_id IS NOT NULL;
-""")  # TODO: README must explain "ORDER BY ts DESC" exists to get latest "level" for each user
+""")
 
 # Known issue: the same song_id shows up with more than one value for duration
 song_table_insert = ("""
@@ -194,7 +194,7 @@ time_table_insert = ("""
 """)
 
 # QUERY LISTS
-# TODO: README must explain that I changed the query order to make "REFERENCES" work properly
+## I changed the query order inside the lists in order to make "REFERENCES" work properly
 create_table_queries = [staging_events_table_create, staging_songs_table_create, user_table_create,
                         artist_table_create, song_table_create, time_table_create, songplay_table_create]
 drop_table_queries = [staging_events_table_drop, staging_songs_table_drop, songplay_table_drop, user_table_drop,
