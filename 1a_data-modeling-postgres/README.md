@@ -19,7 +19,7 @@ course, we overlook security concerns for the sake of this demo project).
 
 ### Python
 You'll need a Python 3 environment containing the libraries in 
-[requirements.txt](./requirement.txt). Note that the python scripts depend only on
+[requirements.txt](./requirements.txt). Note that the python scripts depend only on
 psycopg2 and pandas, whereas the jupyter notebooks require all dependencies.
 
 ### Raw data
