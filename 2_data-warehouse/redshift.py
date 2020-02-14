@@ -105,7 +105,7 @@ def _test_database_tcp_connection(config: Config, endpoint: str) -> None:
     try:
         conn = psycopg2.connect(database=config.db_name, user=config.db_user, password=config.db_password,
                                 host=endpoint, port=config.port)
-    except Exception as e:
+    except psycopg2.OperationalError as e:
         print(colorify('Could not connect to cluster.', "fail"))
         print(e)
     else:
