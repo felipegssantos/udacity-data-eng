@@ -25,7 +25,7 @@ staging_events_table_create = ("""
         gender char(1),
         item_in_session int,
         last_name text,
-        length decimal(10, 5),
+        length decimal(18, 5),
         level text,
         location text,
         method text,
@@ -92,8 +92,8 @@ artist_table_create = ("""
         artist_id text PRIMARY KEY,
         name text,
         location text,
-        latitude numeric,
-        longitude numeric)
+        latitude numeric(18, 5),
+        longitude numeric(18, 5)
     diststyle all;
 """)
 
