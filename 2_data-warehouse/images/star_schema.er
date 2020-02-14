@@ -1,0 +1,41 @@
+[songs]
+    *song_id {label:"VARCHAR(256)"}
+    title {label:"VARCHAR(256)"}
+    artist_id {label:"VARCHAR(256)"}
+    year {label:"INTEGER"}
+    duration {label:"NUMERIC(18, 5)"}
+[artists]
+    *artist_id {label:"VARCHAR(256)"}
+    name {label:"VARCHAR(256)"}
+    location {label:"VARCHAR(256)"}
+    latitude {label:"NUMERIC(18, 5)"}
+    longitude {label:"NUMERIC(18, 5)"}
+[songplays]
+    *songplay_id {label:"INTEGER"}
+    start_time {label:"TIMESTAMP"}
+    user_id {label:"VARCHAR(256)"}
+    level {label:"VARCHAR(256)"}
+    song_id {label:"VARCHAR(256)"}
+    artist_id {label:"VARCHAR(256)"}
+    session_id {label:"INTEGER"}
+    location {label:"VARCHAR(256)"}
+    user_agent {label:"VARCHAR(256)"}
+[time]
+    *start_time {label:"TIMESTAMP"}
+    hour {label:"INTEGER"}
+    day {label:"INTEGER"}
+    week {label:"INTEGER"}
+    month {label:"INTEGER"}
+    year {label:"INTEGER"}
+    weekday {label:"VARCHAR(9)"}
+[users]
+    *user_id {label:"INTEGER"}
+    first_name {label:"VARCHAR(256)"}
+    last_name {label:"VARCHAR(256)"}
+    gender {label:"CHAR(1)"}
+    level {label:"VARCHAR(256)"}
+users ?--* songplays
+songplays *--? artists
+artists ?--* songs
+songplays *--? time
+songs ?--* songplays
