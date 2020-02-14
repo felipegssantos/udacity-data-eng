@@ -3,6 +3,13 @@ from etl import connect_to_cassandra
 
 
 def process_query(session, query, values):
+    """
+    Utility function to process cassandra queries and print its results.
+
+    :param session: an open cassandra session
+    :param query: a string representing a CQL query; it allows placeholders to be represented as %s
+    :param values: list of values to be inserted in "%s" placeholders of query
+    """
     rows = session.execute(query, values)
     for row in rows:
         print(row)

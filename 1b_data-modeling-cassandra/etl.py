@@ -61,17 +61,6 @@ def stream_from_files(csv_path):
                 yield event
 
 
-def safe_cast(x, cast_func):
-    """
-    Casts x according to cast_func unless x is None or an empty string.
-
-    :param x: a string representing an int or float
-    :param cast_func: either int() or float() function
-    :return: x as a numeric type or None
-    """
-    return cast_func(x) if x not in ['', None] else None
-
-
 if __name__ == '__main__':
     cluster, session = connect_to_cassandra()
     process_event_data(session, f'{os.getcwd()}/event_data')
