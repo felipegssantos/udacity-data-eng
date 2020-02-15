@@ -3,8 +3,8 @@ from datetime import datetime
 import os
 
 from pyspark.sql import SparkSession, Window
-from pyspark.sql.functions import udf, col
-from pyspark.sql.functions import year, month, dayofmonth, hour, weekofyear, date_format, row_number, length
+from pyspark.sql.functions import (udf, col, row_number, length, year, month, dayofmonth, hour, weekofyear,
+                                   desc, dayofweek, to_timestamp)
 
 
 config = configparser.ConfigParser()
@@ -38,7 +38,7 @@ def process_song_data(spark: SparkSession, input_data: str, output_data: str) ->
     """
     # get filepath to song data file
     song_data = os.path.join(input_data, 'song_data')
-    
+
     # read song data file
     df = spark.read.json(song_data)
 
@@ -46,9 +46,9 @@ def process_song_data(spark: SparkSession, input_data: str, output_data: str) ->
     songs_table = df.select('song_id', 'title', 'artist_id', 'year', 'duration') \
                     .where(col('song_id').isNotNull()) \
                     .drop_duplicates(['song_id'])
-    
+
     # write songs table to parquet files partitioned by year and artist
-    songs_table.write.partitionBy('year', 'artist_id').parquet(os.path.join(output_data, 'songs'))
+    songs_table.write.mode('overwrite').partitionBy('year', 'artist_id').parquet(os.path.join(output_data, 'songs'))
 
     # extract columns to create artists table
     # we need some extra logic to clean up duplicated artist_id records with distinct artist_name; we want to:
@@ -56,10 +56,10 @@ def process_song_data(spark: SparkSession, input_data: str, output_data: str) ->
     #  2. From the remaining records, choose the one with the shortest artist name and try to get a record with
     #     non-null location, latitude and longitude.
     artist_cleanup_ordering = row_number().over(Window.partitionBy('artist_id')
-                                                    .orderBy(length('name'),
-                                                             col('location').asc_nulls_last(),
-                                                             col('latitude').asc_nulls_last(),
-                                                             col('longitude').asc_nulls_last()))
+                                                      .orderBy(length('name'),
+                                                               col('location').asc_nulls_last(),
+                                                               col('latitude').asc_nulls_last(),
+                                                               col('longitude').asc_nulls_last()))
     artists_table = df.select(col('artist_id'), col('artist_name').alias('name'),
                               col('artist_location').alias('location'), col('artist_latitude').alias('latitude'),
                               col('artist_longitude').alias('longitude')) \
@@ -67,14 +67,14 @@ def process_song_data(spark: SparkSession, input_data: str, output_data: str) ->
                       .withColumn('rn', artist_cleanup_ordering) \
                       .where(col('rn') == 1) \
                       .drop('rn')
-    
+
     # write artists table to parquet files
-    artists_table.write.partitionBy('artist_id').parquet(os.path.join(output_data, 'artists'))
+    artists_table.write.mode('overwrite').partitionBy('artist_id').parquet(os.path.join(output_data, 'artists'))
 
 
 def process_log_data(spark: SparkSession, input_data: str, output_data: str) -> None:
     """
-    Extracts raw event and songs data from data lake, transforms to time table, users table and songplays table and
+    Extracts raw event and songs data from data lake, transforms it to time, users and songplays table and
     loads the transformed tables back to the data lake.
 
     :param spark: instance of SparkSession
@@ -86,38 +86,63 @@ def process_log_data(spark: SparkSession, input_data: str, output_data: str) -> 
 
     # read log data file
     df = spark.read.json(log_data)
-    
+
     # filter by actions for song plays
     df = df.where(col('page') == 'NextSong')
 
-    # extract columns for users table    
-    users_table =
-    
+    # extract columns for users table
+    # we need some extra logic to get the latest "level" for each user; this is done using a window function to
+    # partition by user and get latest "level" record.
+    users_cleanup_ordering = row_number().over(Window.partitionBy().orderBy(desc('ts')))
+    users_table = df.select(col('userId').alias('user_id'), col('firstName').alias('first_name'),
+                            col('lastName').alias('last_name'), col('gender'), col('level')) \
+                    .where(col('user_id').isNotNull()) \
+                    .withColumn('rn', users_cleanup_ordering) \
+                    .where(col('rn') == 1) \
+                    .drop('rn')
+
     # write users table to parquet files
-    users_table
+    users_table.write.mode('overwrite').parquet(os.path.join(output_data, 'songs'))
 
     # create timestamp column from original timestamp column
-    get_timestamp = udf()
-    df = 
-    
+    # get_timestamp =
+    # df =
+
     # create datetime column from original timestamp column
-    get_datetime = udf()
-    df = 
-    
+    get_datetime = udf(lambda ts: str(datetime.utcfromtimestamp(ts / 1000)))
+    df = df.withColumn('start_time', get_datetime('ts').cast('timestamp')) \
+           .drop('ts')
+
     # extract columns to create time table
-    time_table = 
-    
+    time_table = df.select('start_time') \
+                   .distinct() \
+                   .withColumn('hour', hour('start_time')) \
+                   .withColumn('day', dayofmonth('start_time')) \
+                   .withColumn('week', weekofyear('start_time')) \
+                   .withColumn('month', month('start_time')) \
+                   .withColumn('year', year('start_time')) \
+                   .withColumn('weekday', dayofweek('start_time'))
+
     # write time table to parquet files partitioned by year and month
-    time_table
+    time_table.write.mode('overwrite').partitionBy('year', 'month').parquet(os.path.join(output_data, 'time'))
 
     # read in song data to use for songplays table
-    song_df = 
+    song_df = spark.read.json(os.path.join(input_data, 'song_data')) \
+                   .select(col('title').alias('song'), col('duration').alias('length'),
+                           col('artist_name').alias('artist'))
 
     # extract columns from joined song and log datasets to create songplays table 
-    songplays_table = 
+    songplays_table = df.select(col('userId').alias('user_id'), col('songId').alias('song_id'),
+                                col('artistId').alias('artist_id'), col('start_time'),
+                                col('sessionId').alias('session_id'), col('location'),
+                                col('userAgent').alias('user_agent'), col('level'),
+                                year('start_time').alias('year'), month('start_time').alias('month'),
+                                col('song'), col('length'), col('artist')) \
+                        .join(song_df, on=['song', 'length', 'artist']) \
+                        .drop('song', 'length', 'artist')
 
     # write songplays table to parquet files partitioned by year and month
-    songplays_table
+    songplays_table.write.mode('overwrite').partitionBy('year', 'month').parquet(os.path.join(output_data, 'songplays'))
 
 
 def main():
@@ -130,8 +155,8 @@ def main():
     spark = create_spark_session()
     input_data = 'data'#"s3a://udacity-dend/"
     output_data = 'data'#'s3n://raposa-blabla/'
-    
-    process_song_data(spark, input_data, output_data)    
+
+    process_song_data(spark, input_data, output_data)
     process_log_data(spark, input_data, output_data)
 
 
