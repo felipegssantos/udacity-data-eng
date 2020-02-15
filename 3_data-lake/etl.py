@@ -14,7 +14,12 @@ os.environ['AWS_ACCESS_KEY_ID'] = config['AWS_ACCESS_KEY_ID']
 os.environ['AWS_SECRET_ACCESS_KEY'] = config['AWS_SECRET_ACCESS_KEY']
 
 
-def create_spark_session():
+def create_spark_session() -> SparkSession:
+    """
+    Creates a spark session.
+
+    :return spark: SparkSession instance
+    """
     spark = SparkSession \
         .builder \
         .config("spark.jars.packages", "org.apache.hadoop:hadoop-aws:2.7.0") \
@@ -22,7 +27,15 @@ def create_spark_session():
     return spark
 
 
-def process_song_data(spark, input_data, output_data):
+def process_song_data(spark: SparkSession, input_data: str, output_data: str) -> None:
+    """
+    Extracts raw song data from data lake, transforms it to songs and artists table and loads these tables back
+    to the data lake.
+
+    :param spark: instance of SparkSession
+    :param input_data: data lake path to input data
+    :param output_data: data lake path to output data
+    """
     # get filepath to song data file
     song_data = 
     
@@ -42,7 +55,15 @@ def process_song_data(spark, input_data, output_data):
     artists_table
 
 
-def process_log_data(spark, input_data, output_data):
+def process_log_data(spark: SparkSession, input_data: str, output_data: str) -> None:
+    """
+    Extracts raw event and songs data from data lake, transforms to time table, users table and songplays table and
+    loads the transformed tables back to the data lake.
+
+    :param spark: instance of SparkSession
+    :param input_data: data lake path to input data
+    :param output_data: data lake path to output data
+    """
     # get filepath to log data file
     log_data =
 
@@ -83,6 +104,12 @@ def process_log_data(spark, input_data, output_data):
 
 
 def main():
+    """
+    Runs the ETL pipeline.
+
+    This function is responsible for reading the raw data, transforming it to the star schema tables and loading it
+    back to the data lake.
+    """
     spark = create_spark_session()
     input_data = "s3a://udacity-dend/"
     output_data = ""
