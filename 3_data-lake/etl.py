@@ -2,9 +2,9 @@ import configparser
 from datetime import datetime
 import os
 
-from pyspark.sql import SparkSession
+from pyspark.sql import SparkSession, Window
 from pyspark.sql.functions import udf, col
-from pyspark.sql.functions import year, month, dayofmonth, hour, weekofyear, date_format
+from pyspark.sql.functions import year, month, dayofmonth, hour, weekofyear, date_format, row_number, length
 
 
 config = configparser.ConfigParser()
@@ -37,22 +37,39 @@ def process_song_data(spark: SparkSession, input_data: str, output_data: str) ->
     :param output_data: data lake path to output data
     """
     # get filepath to song data file
-    song_data = 
+    song_data = os.path.join(input_data, 'song_data')
     
     # read song data file
-    df = 
+    df = spark.read.json(song_data)
 
     # extract columns to create songs table
-    songs_table = 
+    songs_table = df.select('song_id', 'title', 'artist_id', 'year', 'duration') \
+                    .where(col('song_id').isNotNull()) \
+                    .drop_duplicates(['song_id'])
     
     # write songs table to parquet files partitioned by year and artist
-    songs_table
+    songs_table.write.partitionBy('year', 'artist_id').parquet(os.path.join(output_data, 'songs'))
 
     # extract columns to create artists table
-    artists_table = 
+    # we need some extra logic to clean up duplicated artist_id records with distinct artist_name; we want to:
+    #  1. Remove "featured" names (e.g. "Elton John feat. Sting" or "Elton John featuring Sting");
+    #  2. From the remaining records, choose the one with the shortest artist name and try to get a record with
+    #     non-null location, latitude and longitude.
+    artist_cleanup_ordering = row_number().over(Window.partitionBy('artist_id')
+                                                    .orderBy(length('name'),
+                                                             col('location').asc_nulls_last(),
+                                                             col('latitude').asc_nulls_last(),
+                                                             col('longitude').asc_nulls_last()))
+    artists_table = df.select(col('artist_id'), col('artist_name').alias('name'),
+                              col('artist_location').alias('location'), col('artist_latitude').alias('latitude'),
+                              col('artist_longitude').alias('longitude')) \
+                      .where(~col('name').like('%feat.%') | ~col('name').like('%featuring')) \
+                      .withColumn('rn', artist_cleanup_ordering) \
+                      .where(col('rn') == 1) \
+                      .drop('rn')
     
     # write artists table to parquet files
-    artists_table
+    artists_table.write.partitionBy('artist_id').parquet(os.path.join(output_data, 'artists'))
 
 
 def process_log_data(spark: SparkSession, input_data: str, output_data: str) -> None:
@@ -65,19 +82,19 @@ def process_log_data(spark: SparkSession, input_data: str, output_data: str) -> 
     :param output_data: data lake path to output data
     """
     # get filepath to log data file
-    log_data =
+    log_data = os.path.join(input_data, 'log-data')
 
     # read log data file
-    df = 
+    df = spark.read.json(log_data)
     
     # filter by actions for song plays
-    df = 
+    df = df.where(col('page') == 'NextSong')
 
     # extract columns for users table    
-    artists_table = 
+    users_table =
     
     # write users table to parquet files
-    artists_table
+    users_table
 
     # create timestamp column from original timestamp column
     get_timestamp = udf()
@@ -107,12 +124,12 @@ def main():
     """
     Runs the ETL pipeline.
 
-    This function is responsible for reading the raw data, transforming it to the star schema tables and loading it
-    back to the data lake.
+    This function is responsible for reading the raw data, transforming it to the star schema tables and loading the
+    transformed tables back to the data lake.
     """
     spark = create_spark_session()
-    input_data = "s3a://udacity-dend/"
-    output_data = ""
+    input_data = 'data'#"s3a://udacity-dend/"
+    output_data = 'data'#'s3n://raposa-blabla/'
     
     process_song_data(spark, input_data, output_data)    
     process_log_data(spark, input_data, output_data)
