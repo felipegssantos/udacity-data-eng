@@ -1,4 +1,4 @@
-# Database initialization remainders
+# Database initialization reminders
 
 ## Postgres
 ```bash
