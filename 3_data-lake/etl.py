@@ -105,6 +105,7 @@ def process_log_data(spark: SparkSession, input_data: str, output_data: str) -> 
     users_table.write.mode('overwrite').parquet(os.path.join(output_data, 'users'))
 
     # create datetime column from original timestamp column
+    # (I assume all timestamps are in UTC)
     get_datetime = udf(lambda ts: str(datetime.utcfromtimestamp(ts / 1000)))
     df = df.withColumn('start_time', get_datetime('ts').cast('timestamp')) \
            .drop('ts')
