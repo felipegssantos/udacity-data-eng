@@ -82,7 +82,7 @@ def process_log_data(spark: SparkSession, input_data: str, output_data: str) -> 
     :param output_data: data lake path to output data
     """
     # get filepath to log data file
-    log_data = os.path.join(input_data, 'log-data/*.json')
+    log_data = os.path.join(input_data, 'log-data/*/*/*.json')
 
     # read log data file
     df = spark.read.json(log_data)
@@ -152,8 +152,11 @@ def main():
     transformed tables back to the data lake.
     """
     spark = create_spark_session()
-    input_data = 'data'#"s3a://udacity-dend/"
-    output_data = 'data'#'s3n://raposa-blabla/'
+    input_data = "s3a://udacity-dend/"
+    output_data = 's3n://raposa-udacity-de-nanodegree/data-lake/'
+
+    # input_data = 'data'
+    # output_data = 'data'
 
     process_song_data(spark, input_data, output_data)
     process_log_data(spark, input_data, output_data)
