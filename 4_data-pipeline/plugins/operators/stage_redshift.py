@@ -6,22 +6,28 @@ from airflow.utils.decorators import apply_defaults
 class StageToRedshiftOperator(BaseOperator):
     ui_color = '#358140'
 
+    sql_template = """
+        COPY {table}
+        FROM {path}
+        iam_role {iam_role}
+        json {jsonpath} truncatecolumns;
+    """
+
     @apply_defaults
     def __init__(self,
-                 # Define your operators params (with defaults) here
-                 # Example:
-                 # redshift_conn_id=your-connection-name
+                 staging_table,
+                 s3_path,
+                 iam_role,
+                 redshift_conn_id='redshift',
+                 jsonpath='auto',
                  *args, **kwargs):
 
         super(StageToRedshiftOperator, self).__init__(*args, **kwargs)
-        # Map params here
-        # Example:
-        # self.conn_id = conn_id
+        self.redshift_conn_id = redshift_conn_id
+        self.query = StageToRedshiftOperator.sql_template.format(table=staging_table, path=s3_path,
+                                                                 iam_role=iam_role, jsonpath=jsonpath)
 
     def execute(self, context):
-        self.log.info('StageToRedshiftOperator not implemented yet')
-
-
-
-
-
+        redshift = PostgresHook(postgres_conn_id=self.redshift_conn_id)
+        self.log.info('Copying data to AWS Redshift...')
+        redshift.run(self.query)
