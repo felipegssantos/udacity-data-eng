@@ -1,0 +1,4 @@
+airflow/
+.airflow-env/
+*.cfg
+*.sh
