@@ -1,4 +1,11 @@
-airflow/
 .airflow-env/
 *.cfg
 *.sh
+
+airflow/*.cfg
+airflow/*.out
+airflow/*.err
+airflow/*.log
+airflow/*.pid
+airflow/*.db
+airflow/logs/
