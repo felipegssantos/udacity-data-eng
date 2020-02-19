@@ -94,17 +94,15 @@ CREATE_TABLES = {
 
 dag = DAG('project.reset_db', description='Drops and recreates all tables',
           schedule_interval=None, start_date=datetime.now())
-    # for table, query in CREATE_TABLES.values():
-table = 'artists'
-query = CREATE_TABLES[table]
-drop_task = PostgresOperator(sql=f"DROP TABLE IF EXISTS {table};",
-                             postgres_conn_id='redshift',
-                             autocommit=True,
-                             task_id=f'drop_{table}',
-                             dag=dag)
-create_task = PostgresOperator(sql=query,
-                               postgres_conn_id='redshift',
-                               autocommit=True,
-                               task_id=f'create_{table}',
-                               dag=dag)
-drop_task >> create_task
+for table, query in CREATE_TABLES.items():
+    drop_task = PostgresOperator(sql=f"DROP TABLE IF EXISTS {table};",
+                                 postgres_conn_id='redshift',
+                                 autocommit=True,
+                                 task_id=f'drop_{table}',
+                                 dag=dag)
+    create_task = PostgresOperator(sql=query,
+                                   postgres_conn_id='redshift',
+                                   autocommit=True,
+                                   task_id=f'create_{table}',
+                                   dag=dag)
+    drop_task >> create_task

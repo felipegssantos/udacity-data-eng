@@ -8,4 +8,7 @@ airflow/*.err
 airflow/*.log
 airflow/*.pid
 airflow/*.db
+airflow/logs/airflowdb/
+postgres.log
+airflowdb/
 airflow/logs/
