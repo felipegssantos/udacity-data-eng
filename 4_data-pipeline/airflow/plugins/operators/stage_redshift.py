@@ -5,13 +5,15 @@ from airflow.models import BaseOperator
 from airflow.utils.decorators import apply_defaults
 
 
-# TODO: The stage operator is expected to be able to load any JSON formatted files from S3 to Amazon Redshift. The
-#  operator creates and runs a SQL COPY statement based on the parameters provided. The operator's parameters should
-#  specify where in S3 the file is loaded and what is the target table.
-#       The parameters should be used to distinguish between JSON file. Another important requirement of the stage
-#  operator is containing a templated field that allows it to load timestamped files from S3 based on the execution time
-#  and run backfills.
 class StageToRedshiftOperator(BaseOperator):
+    """
+    The stage operator can load any JSON formatted files from S3 to Amazon Redshift.
+
+    This operator creates and runs a SQL COPY statement based on the parameters provided. The operator's parameters
+    should specify where in S3 the file is loaded and what is the target table. It can, for example, use airflow macros
+    like {{ ds }} and {{ execution_date }} to target specific data files. In fact, usage of these macros may be
+    particularly useful to run backfills.
+    """
     ui_color = '#358140'
     template_fields = ('s3_key', 'iam_role')
     sql_template = """
@@ -30,6 +32,17 @@ class StageToRedshiftOperator(BaseOperator):
                  redshift_conn_id='redshift',
                  jsonpath='auto',
                  *args, **kwargs):
+        """
+
+        :param table: name of the staging table where raw data should be loaded
+        :param s3_bucket: name of the S3 bucket containing the raw data to be loaded
+        :param s3_key: (templated field) the path to the raw data file(s) inside the S3 bucket
+        :param iam_role: (templated field) a IAM ROLE ARN allowing redshift to read S3 data
+        :param redshift_conn_id: connection ID to the redshift instance
+        :param jsonpath: redshift's jsonpath option (defaults to 'auto')
+        :param args: optional positional arguments to airflow.operator.BaseOperator
+        :param kwargs: optional keyword arguments to airflow.operator.BaseOperator
+        """
 
         super(StageToRedshiftOperator, self).__init__(*args, **kwargs)
         self.table = table
@@ -43,7 +56,10 @@ class StageToRedshiftOperator(BaseOperator):
         redshift = PostgresHook(postgres_conn_id=self.redshift_conn_id)
         s3_path = os.path.join('s3://', self.s3_bucket, self.s3_key.format(**context))
         arn = self.iam_role.format(**context)
+        self.log.info(f'Templated fields:\n'
+                      f'    s3_path={s3_path}\n'
+                      f'    ARN={arn}\n')
         query = StageToRedshiftOperator.sql_template.format(table=self.table, path=s3_path,
-                                                            iam_role=arn, jsonpath=self.jsonpath)
+                                                            iam_role_arn=arn, jsonpath=self.jsonpath)
         self.log.info('Copying data to AWS Redshift...')
         redshift.run(query)
