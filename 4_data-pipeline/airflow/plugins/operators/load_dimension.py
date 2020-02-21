@@ -10,6 +10,10 @@ from airflow.utils.decorators import apply_defaults
 #       Dimension loads are often done with the truncate-insert pattern where the target table is emptied before the
 #  load. Thus, you could also have a parameter that allows switching between insert modes when loading dimensions.
 class LoadDimensionOperator(BaseOperator):
+    """
+    This operator copies data from staging tables to dimension tables. It allows for simples inserts as well as for
+    truncate-insert patterns.
+    """
 
     ui_color = '#80BD9E'
     insert_sql = """
@@ -25,6 +29,15 @@ class LoadDimensionOperator(BaseOperator):
                  redshift_conn_id='redshift',
                  truncate=True,
                  *args, **kwargs):
+        """
+
+        :param select_query: a SELECT statement over staging tables
+        :param dimension_table: name of the dimension table
+        :param redshift_conn_id: connection ID to the redshift instance
+        :param truncate: if true, truncates before inserting data
+        :param args: optional positional arguments to airflow.operator.BaseOperator
+        :param kwargs: optional keyword arguments to airflow.operator.BaseOperator
+        """
 
         super(LoadDimensionOperator, self).__init__(*args, **kwargs)
         self.redshift_conn_id = redshift_conn_id
