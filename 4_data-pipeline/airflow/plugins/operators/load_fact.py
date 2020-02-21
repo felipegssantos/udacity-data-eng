@@ -25,7 +25,6 @@ class LoadFactOperator(BaseOperator):
 
         :param select_query: a SELECT statement over staging tables
         :param fact_table: name of the fact table
-        :param fact_columns: list of column names in the fact table
         :param redshift_conn_id: connection ID to the redshift instance
         :param args: optional positional arguments to airflow.operator.BaseOperator
         :param kwargs: optional keyword arguments to airflow.operator.BaseOperator

@@ -25,7 +25,7 @@ dag = DAG('test.facts',
           description='Load facts table',
           schedule_interval='@daily')
 
-start_operator = DummyOperator(task_id='Begin_execution',  dag=dag)
+start_operator = DummyOperator(task_id='Begin_execution', dag=dag)
 
 load_songplays_table = LoadFactOperator(
     task_id='Load_songplays_fact_table',
@@ -34,7 +34,7 @@ load_songplays_table = LoadFactOperator(
     fact_table='songplays'
 )
 
-end_operator = DummyOperator(task_id='Stop_execution',  dag=dag)
+end_operator = DummyOperator(task_id='Stop_execution', dag=dag)
 
 (start_operator
  >> load_songplays_table

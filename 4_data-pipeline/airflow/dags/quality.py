@@ -25,14 +25,14 @@ dag = DAG('test.check-quality',
           description='Check data quality',
           schedule_interval='@daily')
 
-start_operator = DummyOperator(task_id='Begin_execution',  dag=dag)
+start_operator = DummyOperator(task_id='Begin_execution', dag=dag)
 
 run_quality_checks = DataQualityOperator(
     task_id='Run_data_quality_checks',
     dag=dag
 )
 
-end_operator = DummyOperator(task_id='Stop_execution',  dag=dag)
+end_operator = DummyOperator(task_id='Stop_execution', dag=dag)
 
 (start_operator
  >> run_quality_checks

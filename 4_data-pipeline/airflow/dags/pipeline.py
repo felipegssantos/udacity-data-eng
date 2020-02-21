@@ -25,7 +25,7 @@ dag = DAG('project.pipeline',
           description='Load and transform data in Redshift with Airflow',
           schedule_interval='@daily')
 
-start_operator = DummyOperator(task_id='Begin_execution',  dag=dag)
+start_operator = DummyOperator(task_id='Begin_execution', dag=dag)
 
 stage_events_to_redshift = StageToRedshiftOperator(
     task_id='Stage_events',
@@ -83,7 +83,7 @@ run_quality_checks = DataQualityOperator(
 
 )
 
-end_operator = DummyOperator(task_id='Stop_execution',  dag=dag)
+end_operator = DummyOperator(task_id='Stop_execution', dag=dag)
 
 (start_operator
  >> [stage_events_to_redshift, stage_songs_to_redshift]
