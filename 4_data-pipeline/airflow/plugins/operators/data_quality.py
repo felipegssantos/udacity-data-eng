@@ -25,6 +25,15 @@ class DataQualityOperator(BaseOperator):
                  condition_fn=None,
                  redshift_conn_id='redshift',
                  *args, **kwargs):
+        """
+
+        :param tables: list of table names to check data quality
+        :param test_query: list of queries to retrieve data for quality tests
+        :param condition_fn: list of conditions to test each query result (must be the same size of `test_query`)
+        :param redshift_conn_id: connection ID to the redshift instance
+        :param args: optional positional arguments to airflow.operator.BaseOperator
+        :param kwargs: optional keyword arguments to airflow.operator.BaseOperator
+        """
 
         def _default_condition(records):
             return records[0][0] > 0
@@ -46,15 +55,21 @@ class DataQualityOperator(BaseOperator):
         self.log.info("Data quality checks passed on all tables.")
 
     def find_bad_tables(self, redshift):
+        """
+        This method performs all quality tests against all tables and returns which table(s) failed on which test(s).
+
+        :param redshift: hook to a redshift instance
+        :return: dictionary with failing tables and keys and a list of the corresponding failing tests as values
+        """
         bad_tables = dict()
         for table in self.tables:
             failing_tests = [query for query, condition_fn in zip(self.query, self.condition_fn)
-                             if not self.check_table_quality(redshift, table, query, condition_fn)]
+                             if not self._check_table_quality(redshift, table, query, condition_fn)]
             if len(failing_tests) > 0:
                 bad_tables[table] = failing_tests
         return bad_tables
 
     @staticmethod
-    def check_table_quality(redshift, table, query, condition_fn):
+    def _check_table_quality(redshift, table, query, condition_fn):
         records = redshift.get_records(query.format(table=table))
         return condition_fn(records)

@@ -31,7 +31,7 @@ run_quality_checks = DataQualityOperator(
     task_id='Run_data_quality_checks',
     dag=dag,
     tables=['songplays', 'users', 'songs', 'artists', 'time'],
-    condition_fn=[lambda x: x[0][0] > 22]
+    condition_fn=[lambda x: x[0][0] > 22]  # this weird condition is set to see one of the tables fail
 )
 
 end_operator = DummyOperator(task_id='Stop_execution', dag=dag)
