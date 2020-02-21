@@ -29,7 +29,9 @@ start_operator = DummyOperator(task_id='Begin_execution', dag=dag)
 
 run_quality_checks = DataQualityOperator(
     task_id='Run_data_quality_checks',
-    dag=dag
+    dag=dag,
+    tables=['songplays', 'users', 'songs', 'artists', 'time'],
+    condition_fn=[lambda x: x[0][0] > 22]
 )
 
 end_operator = DummyOperator(task_id='Stop_execution', dag=dag)
