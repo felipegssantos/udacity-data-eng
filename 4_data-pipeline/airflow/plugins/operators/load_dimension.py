@@ -12,22 +12,31 @@ from airflow.utils.decorators import apply_defaults
 class LoadDimensionOperator(BaseOperator):
 
     ui_color = '#80BD9E'
+    insert_sql = """
+                 INSERT INTO {table}
+                 {select_query}
+                 """
+    truncate_sql = "TRUNCATE {table}"
 
     @apply_defaults
     def __init__(self,
-                 select_query='',
-                 dimension_table='dimension',
-                 dimension_columns=None,
+                 select_query=None,
+                 dimension_table=None,
                  redshift_conn_id='redshift',
+                 truncate=True,
                  *args, **kwargs):
 
         super(LoadDimensionOperator, self).__init__(*args, **kwargs)
         self.redshift_conn_id = redshift_conn_id
-        self.query = f"""INSERT INTO {dimension_table} ({", ".join(dimension_columns)})
-                         {select_query}"""
+        self.table = dimension_table
+        self.select_query = select_query
+        self.truncate = truncate
 
     def execute(self, context):
-        self.log.info('Not implemented')
-        # redshift = PostgresHook(postgres_conn_id=self.redshift_conn_id)
-        # self.log.info('Loading dimension table...')
-        # redshift.run(self.query)
+        redshift = PostgresHook(postgres_conn_id=self.redshift_conn_id)
+        if self.truncate:
+            self.log.info('Truncating dimension table...')
+            redshift.run(LoadDimensionOperator.truncate_sql.format(table=self.table))
+        query = LoadDimensionOperator.insert_sql.format(table=self.table, select_query=self.select_query)
+        self.log.info('Loading dimension table...')
+        redshift.run(query)
