@@ -11,7 +11,7 @@ class LoadFactOperator(BaseOperator):
 
     ui_color = '#F98866'
     sql_template = """
-                   INSERT INTO {table} ({columns})
+                   INSERT INTO {table}
                    {select_query}
                    """
 
@@ -19,7 +19,6 @@ class LoadFactOperator(BaseOperator):
     def __init__(self,
                  select_query=None,
                  fact_table=None,
-                 fact_columns=None,
                  redshift_conn_id='redshift',
                  *args, **kwargs):
         """
@@ -35,12 +34,10 @@ class LoadFactOperator(BaseOperator):
         super(LoadFactOperator, self).__init__(*args, **kwargs)
         self.redshift_conn_id = redshift_conn_id
         self.table = fact_table
-        self.columns = ", ".join(fact_columns)
         self.select_query = select_query
 
     def execute(self, context):
         redshift = PostgresHook(postgres_conn_id=self.redshift_conn_id)
-        query = LoadFactOperator.sql_template.format(table=self.table, columns=self.columns,
-                                                     select_query=self.select_query)
+        query = LoadFactOperator.sql_template.format(table=self.table, select_query=self.select_query)
         self.log.info('Loading fact table...')
         redshift.run(query)

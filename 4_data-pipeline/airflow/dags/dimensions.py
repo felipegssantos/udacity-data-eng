@@ -30,29 +30,25 @@ start_operator = DummyOperator(task_id='Begin_execution',  dag=dag)
 load_user_dimension_table = LoadDimensionOperator(
     task_id='Load_user_dim_table',
     dag=dag,
-    select_query=SqlQueries.user_table_insert,
-    dimension_columns=['userid', 'first_name', 'last_name', 'gender', 'level']
+    select_query=SqlQueries.user_table_insert
 )
 
 load_song_dimension_table = LoadDimensionOperator(
     task_id='Load_song_dim_table',
     dag=dag,
-    select_query=SqlQueries.song_table_insert,
-    dimension_columns=['songid', 'title', 'artistid', 'year', 'duration']
+    select_query=SqlQueries.song_table_insert
 )
 
 load_artist_dimension_table = LoadDimensionOperator(
     task_id='Load_artist_dim_table',
     dag=dag,
-    select_query=SqlQueries.artist_table_insert,
-    dimension_columns=['artistid', 'name', 'location', 'latitude', 'longitude']
+    select_query=SqlQueries.artist_table_insert
 )
 
 load_time_dimension_table = LoadDimensionOperator(
     task_id='Load_time_dim_table',
     dag=dag,
-    select_query=SqlQueries.time_table_insert,
-    dimension_columns=['start_time', 'hour', 'day', 'week', 'month', 'year', 'weekday']
+    select_query=SqlQueries.time_table_insert
 )
 
 end_operator = DummyOperator(task_id='Stop_execution',  dag=dag)
