@@ -39,7 +39,6 @@ class LoadFactOperator(BaseOperator):
         self.select_query = select_query
 
     def execute(self, context):
-        self.log.info('Running updated version')
         redshift = PostgresHook(postgres_conn_id=self.redshift_conn_id)
         query = LoadFactOperator.sql_template.format(table=self.table, columns=self.columns,
                                                      select_query=self.select_query)
