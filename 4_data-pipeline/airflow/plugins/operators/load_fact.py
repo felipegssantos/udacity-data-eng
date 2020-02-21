@@ -3,30 +3,45 @@ from airflow.models import BaseOperator
 from airflow.utils.decorators import apply_defaults
 
 
-# TODO: With dimension and fact operators, you can utilize the provided SQL helper class to run data transformations.
-#  Most of the logic is within the SQL transformations and the operator is expected to take as input a SQL statement and
-#  target database on which to run the query against. You can also define a target table that will contain the results
-#  of the transformation.
-#       Fact tables are usually so massive that they should only allow append type functionality.
 class LoadFactOperator(BaseOperator):
+    """
+    This operator copies data from staging tables to fact tables. It allows for append-only because fact
+    tables are usually very massive.
+    """
 
     ui_color = '#F98866'
+    sql_template = """
+                   INSERT INTO {table} ({columns})
+                   {select_query}
+                   """
 
     @apply_defaults
     def __init__(self,
-                 select_query='',
-                 fact_table='facts',
+                 select_query=None,
+                 fact_table=None,
                  fact_columns=None,
                  redshift_conn_id='redshift',
                  *args, **kwargs):
+        """
+
+        :param select_query: a SELECT statement over staging tables
+        :param fact_table: name of the fact table
+        :param fact_columns: list of column names in the fact table
+        :param redshift_conn_id: connection ID to the redshift instance
+        :param args: optional positional arguments to airflow.operator.BaseOperator
+        :param kwargs: optional keyword arguments to airflow.operator.BaseOperator
+        """
 
         super(LoadFactOperator, self).__init__(*args, **kwargs)
         self.redshift_conn_id = redshift_conn_id
-        self.query = f"""INSERT INTO {fact_table} ({", ".join(fact_columns)})
-                         {select_query}"""
+        self.table = fact_table
+        self.columns = ", ".join(fact_columns)
+        self.select_query = select_query
 
     def execute(self, context):
-        self.log.info('Not implemented')
-        # redshift = PostgresHook(postgres_conn_id=self.redshift_conn_id)
-        # self.log.info('Loading fact table...')
-        # redshift.run(self.query)
+        self.log.info('Running updated version')
+        redshift = PostgresHook(postgres_conn_id=self.redshift_conn_id)
+        query = LoadFactOperator.sql_template.format(table=self.table, columns=self.columns,
+                                                     select_query=self.select_query)
+        self.log.info('Loading fact table...')
+        redshift.run(query)

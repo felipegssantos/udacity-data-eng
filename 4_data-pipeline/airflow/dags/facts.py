@@ -31,7 +31,8 @@ load_songplays_table = LoadFactOperator(
     task_id='Load_songplays_fact_table',
     dag=dag,
     select_query=SqlQueries.songplay_table_insert,
-    fact_columns=['start_time', 'userid', 'level', 'songid', 'artistid', 'sessionid', 'location', 'user_agent']
+    fact_table='songplays',
+    fact_columns=['playid', 'start_time', 'userid', 'level', 'songid', 'artistid', 'sessionid', 'location', 'user_agent']
 )
 
 end_operator = DummyOperator(task_id='Stop_execution',  dag=dag)
