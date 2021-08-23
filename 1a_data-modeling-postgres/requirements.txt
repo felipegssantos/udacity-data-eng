@@ -1,4 +1,4 @@
 ipython-sql==0.3.9
-jupyterlab==1.2.5
+jupyterlab==1.2.21
 pandas==0.25.3
 psycopg2==2.8.4
